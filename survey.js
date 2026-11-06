@@ -83,7 +83,7 @@ async function start(){
  try{
   if(LIVE){
    if(OPEN&&localStorage.getItem(DONE)){block("回答済みです","このスマートフォンからは、すでに回答をいただいています。ご協力ありがとうございました。");btn.disabled=false;return}
-   if(OPEN&&!await isOpen()){block("回答の受付は終了しました","ご協力ありがとうございました。");btn.disabled=false;return}
+   if(OPEN&&!await isOpen()){block("現在、回答を受け付けていません","受付期間中にもう一度お試しください。");btn.disabled=false;return}
    const h=OPEN?"open":await sha(token);
    let s=JSON.parse(localStorage.getItem(KEY)||"null");
    if(!s||s.t!==h){
@@ -96,7 +96,7 @@ async function start(){
   }
   show("#form");
  }catch(e){
-  if(e.message==="denied"&&OPEN)block("回答の受付は終了しました","ご協力ありがとうございました。");
+  if(e.message==="denied"&&OPEN)block("現在、回答を受け付けていません","受付期間中にもう一度お試しください。");
   else if(e.message==="denied")block("このリンクはご利用いただけません","すでに回答に使われたか、正しいリンクではありません。");
   else msg.textContent="通信できませんでした。電波の良い場所でもう一度お試しください。";
  }
