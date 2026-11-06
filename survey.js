@@ -1,4 +1,4 @@
-const CFG=window.SURVEY_CONFIG,PREVIEW=location.hash==="#preview",LIVE=!!(CFG.apiKey&&CFG.projectId)&&!PREVIEW;
+const CFG=window.SURVEY_CONFIG,PREVIEW=location.hash==="#preview",OPEN=location.hash==="#open",LIVE=!!(CFG.apiKey&&CFG.projectId)&&!PREVIEW;
 const $=s=>document.querySelector(s);
 const DOCS=`projects/${CFG.projectId}/databases/(default)/documents`;
 const FS=`https://firestore.googleapis.com/v1/${DOCS}`;
@@ -7,7 +7,8 @@ const sha=async s=>hex(await crypto.subtle.digest("SHA-256",new TextEncoder().en
 const rand=n=>hex(crypto.getRandomValues(new Uint8Array(n)));
 const answers={};
 let session=null,token="";
-const KEY="survey-session";
+const KEY="survey-session",DONE="survey-done";
+const isOpen=async()=>(await fetch(`${FS}/meta/open?key=${CFG.apiKey}`)).ok;
 const toValue=v=>Array.isArray(v)?{arrayValue:{values:v.map(s=>({stringValue:s}))}}:{stringValue:String(v)};
 const fields=o=>Object.fromEntries(Object.entries(o).map(([k,v])=>[k,toValue(v)]));
 async function commit(writes,idToken){
@@ -81,20 +82,22 @@ async function start(){
  const btn=$("#startBtn"),msg=$("#startMsg");msg.textContent="";btn.disabled=true;
  try{
   if(LIVE){
-   const h=await sha(token);
+   if(OPEN&&localStorage.getItem(DONE)){block("回答済みです","このスマートフォンからは、すでに回答をいただいています。ご協力ありがとうございました。");btn.disabled=false;return}
+   if(OPEN&&!await isOpen()){block("回答の受付は終了しました","ご協力ありがとうございました。");btn.disabled=false;return}
+   const h=OPEN?"open":await sha(token);
    let s=JSON.parse(localStorage.getItem(KEY)||"null");
    if(!s||s.t!==h){
     const a=await signIn();const r=rand(16);
-    await commit([
-     {update:{name:`${DOCS}/used/${h}`,fields:{}},currentDocument:{exists:false}},
-     {update:{name:`${DOCS}/claims/${a.uid}`,fields:fields({t:h,r})},currentDocument:{exists:false}}],a.idToken);
+    await commit((OPEN?[]:[{update:{name:`${DOCS}/used/${h}`,fields:{}},currentDocument:{exists:false}}]).concat(
+     {update:{name:`${DOCS}/claims/${a.uid}`,fields:fields({t:h,r})},currentDocument:{exists:false}}),a.idToken);
     s={...a,t:h,r};localStorage.setItem(KEY,JSON.stringify(s));
    }else await refresh(s);
    session=s;
   }
   show("#form");
  }catch(e){
-  if(e.message==="denied")block("このリンクはご利用いただけません","すでに回答に使われたか、正しいリンクではありません。");
+  if(e.message==="denied"&&OPEN)block("回答の受付は終了しました","ご協力ありがとうございました。");
+  else if(e.message==="denied")block("このリンクはご利用いただけません","すでに回答に使われたか、正しいリンクではありません。");
   else msg.textContent="通信できませんでした。電波の良い場所でもう一度お試しください。";
  }
  btn.disabled=false;
@@ -109,7 +112,7 @@ async function submit(){
    await commit([
     {update:{name:`${DOCS}/responses/${session.r}`,fields:fields(answers)},currentDocument:{exists:false}},
     {delete:`${DOCS}/claims/${session.uid}`,currentDocument:{exists:true}}],session.idToken);
-   localStorage.removeItem(KEY);
+   localStorage.removeItem(KEY);if(OPEN)localStorage.setItem(DONE,"1");
   }
   if(LIVE)history.replaceState(null,"",location.pathname);show("#done");
  }catch(e){
@@ -121,4 +124,4 @@ token=new URLSearchParams(location.hash.slice(1)).get("t")||"";
 render();
 $("#startBtn").addEventListener("click",start);$("#sendBtn").addEventListener("click",submit);
 if(!LIVE)$("#previewNote").hidden=false;
-else if(!token)block("個別のリンクからお入りください","このアンケートは、お手元に届いたリンクから回答できます。");
+else if(!token&&!OPEN)block("個別のリンクからお入りください","このアンケートは、お手元に届いたリンクから回答できます。");

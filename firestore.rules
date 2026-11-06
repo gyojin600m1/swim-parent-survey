@@ -33,6 +33,13 @@ service cloud.firestore {
         && existsAfter(/databases/$(db)/documents/admins/$(request.auth.uid));
     }
 
+    // 貼り出し用QRの受付中の印。あるあいだだけ共通QRから回答できる。
+    match /meta/open {
+      allow get: if true;
+      allow create: if isAdmin() && request.resource.data.keys().size() == 0;
+      allow delete: if isAdmin();
+    }
+
     // 配布したリンクのハッシュ。リンクそのものは保存しない。
     match /tickets/{hash} {
       allow read: if isAdmin();
@@ -53,8 +60,11 @@ service cloud.firestore {
       allow create: if signedIn() && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['t','r'])
         && request.resource.data.r is string && request.resource.data.r.size() == 32
-        && !exists(/databases/$(db)/documents/used/$(request.resource.data.t))
-        && existsAfter(/databases/$(db)/documents/used/$(request.resource.data.t));
+        && ((request.resource.data.t == 'open'
+              && exists(/databases/$(db)/documents/meta/open))
+          || (request.resource.data.t != 'open'
+              && !exists(/databases/$(db)/documents/used/$(request.resource.data.t))
+              && existsAfter(/databases/$(db)/documents/used/$(request.resource.data.t))));
       allow delete: if signedIn() && request.auth.uid == uid;
     }
 
@@ -65,6 +75,8 @@ service cloud.firestore {
         && exists(/databases/$(db)/documents/claims/$(request.auth.uid))
         && !existsAfter(/databases/$(db)/documents/claims/$(request.auth.uid))
         && get(/databases/$(db)/documents/claims/$(request.auth.uid)).data.r == id
+        && (get(/databases/$(db)/documents/claims/$(request.auth.uid)).data.t != 'open'
+          || exists(/databases/$(db)/documents/meta/open))
         && validAnswer(request.resource.data);
     }
   }

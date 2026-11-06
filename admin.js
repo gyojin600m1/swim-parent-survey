@@ -72,6 +72,7 @@ async function changeLogin(){
 }
 async function load(){
  if(!LIVE){rows=sample();$("#sIssued").textContent="30";draw();return}
+ await loadOpen();
  const docs=await listAll("responses");
  rows=docs.map(d=>Object.fromEntries(Object.entries(d.fields||{}).map(([k,v])=>[k,fromVal(v)])));
  $("#sIssued").textContent=(await listAll("tickets")).length;draw();
@@ -147,11 +148,37 @@ function saveXlsx(){
 /* --- 個別リンク --- */
 const hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
 const sha=async s=>hex(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)));
+const baseUrl=()=>new URL("./",location.href).href;
+function qrSvg(text){
+ const NS="http://www.w3.org/2000/svg",{d,size}=QR.toPath(QR.encode(text)),svg=document.createElementNS(NS,"svg"),p=document.createElementNS(NS,"path");
+ svg.setAttribute("viewBox",`0 0 ${size} ${size}`);svg.setAttribute("class","qrCode");svg.setAttribute("shape-rendering","crispEdges");p.setAttribute("d",d);p.setAttribute("fill","#000");svg.append(p);return svg;
+}
+function printWith(cls){document.body.classList.add(cls);addEventListener("afterprint",()=>document.body.classList.remove(cls),{once:true});window.print()}
+let accepting=false;
+async function loadOpen(){
+ if(!LIVE)return;
+ const r=await fetch(`${FS}/meta/open?key=${CFG.apiKey}`);accepting=r.ok;drawOpen();
+}
+function drawOpen(){$("#openState").textContent=accepting?"現在：回答を受付中です":"現在：回答を受け付けていません";$("#openBtn").textContent=accepting?"回答の受付を締め切る":"回答の受付を始める"}
+async function setOpen(v){
+ await fsCommit([v?{update:{name:`${DOCS}/meta/open`,fields:{}}}:{delete:`${DOCS}/meta/open`}]);accepting=v;drawOpen();
+}
+async function toggleOpen(){
+ const m=$("#openMsg");m.textContent="";$("#openBtn").disabled=true;
+ try{await setOpen(!accepting)}catch(e){m.textContent="変更できませんでした。ログインし直してください。"}
+ $("#openBtn").disabled=false;
+}
+async function poster(){
+ const m=$("#openMsg");m.textContent="";
+ try{if(LIVE&&!accepting)await setOpen(true)}catch(e){m.textContent="受付を始められませんでした。ログインし直してください。";return}
+ const s=$("#posterSheet");s.textContent="";
+ s.append(el("p","posterSub","保護者の皆様へ"),el("h2","posterTitle","アンケートにご協力ください"),el("p","posterLead","子供たちが水泳を続けられる環境についてのアンケートです。"),qrSvg(`${baseUrl()}#open`),el("p","posterHow","スマートフォンのカメラで読み取ってください"),el("p","posterNote","無記名です。お名前の入力はありません。回答は1人1回でお願いします。"));
+ printWith("printPoster");
+}
 function buildSheet(urls){
- const sheet=$("#qrSheet");sheet.textContent="";const NS="http://www.w3.org/2000/svg";
+ const sheet=$("#qrSheet");sheet.textContent="";
  for(const u of urls){
-  const{d,size}=QR.toPath(QR.encode(u)),card=el("div","qrCard"),svg=document.createElementNS(NS,"svg"),p=document.createElementNS(NS,"path");
-  svg.setAttribute("viewBox",`0 0 ${size} ${size}`);svg.setAttribute("class","qrCode");svg.setAttribute("shape-rendering","crispEdges");p.setAttribute("d",d);p.setAttribute("fill","#000");svg.append(p);
+  const card=el("div","qrCard"),svg=qrSvg(u);
   const t=el("div","qrText");t.append(el("b","","保護者アンケート"),el("p","","子供たちが水泳を続けられる環境についてのアンケートです。"),el("p","","スマートフォンのカメラでQRコードを読み取ってください。"),el("p","","無記名です。お名前の入力はありません。回答できるのは1回です。"));
   card.append(svg,t);sheet.append(card);
  }
@@ -161,7 +188,7 @@ async function issue(){
  if(!LIVE){m.textContent="サンプル表示では発行できません。";return}
  $("#issueBtn").disabled=true;
  try{
-  const base=new URL("./",location.href).href,toks=[...Array(n)].map(()=>hex(crypto.getRandomValues(new Uint8Array(16))));
+  const base=baseUrl(),toks=[...Array(n)].map(()=>hex(crypto.getRandomValues(new Uint8Array(16))));
   const writes=await Promise.all(toks.map(async t=>({update:{name:`${DOCS}/tickets/${await sha(t)}`,fields:{}},currentDocument:{exists:false}})));
   const r=await fetch(`${FS}:commit`,{method:"POST",headers:hdr(),body:JSON.stringify({writes})});
   if(!r.ok)throw new Error();
@@ -170,7 +197,7 @@ async function issue(){
  $("#issueBtn").disabled=false;
 }
 $("#loginBtn").addEventListener("click",login);$("#setupBtn").addEventListener("click",setup);$("#changeBtn").addEventListener("click",changeLogin);$("#xlsxBtn").addEventListener("click",saveXlsx);$("#reloadBtn").addEventListener("click",()=>load());
-$("#issueBtn").addEventListener("click",issue);$("#printBtn").addEventListener("click",()=>window.print());$("#copyBtn").addEventListener("click",()=>navigator.clipboard.writeText($("#links").textContent));
+$("#issueBtn").addEventListener("click",issue);$("#printBtn").addEventListener("click",()=>printWith("printCards"));$("#posterBtn").addEventListener("click",poster);$("#openBtn").addEventListener("click",toggleOpen);$("#copyBtn").addEventListener("click",()=>navigator.clipboard.writeText($("#links").textContent));
 async function initLogin(){
  const r=await fetch(`${FS}/meta/setup?key=${CFG.apiKey}`).catch(()=>null);
  if(r&&r.status===404){$("#loginTitle").textContent="担当者の登録";$("#loginHint").hidden=false;$("#loginBox").hidden=true;$("#setupBox").hidden=false;$("#pass").autocomplete="new-password"}

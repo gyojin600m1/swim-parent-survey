@@ -5,7 +5,7 @@
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none';script-src 'self';style-src 'self';connect-src https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com;base-uri 'none';form-action 'none'">
 <title>アンケート集計（担当者用）</title>
-<link rel="stylesheet" href="style.css?v=8"></head><body>
+<link rel="stylesheet" href="style.css?v=9"></head><body>
 <header class="head"><h1>アンケート集計（担当者用）</h1></header>
 <main class="wrap">
 <p class="note" id="sampleNote" hidden>サンプルの架空データで表示しています。</p>
@@ -15,11 +15,15 @@
 <div class="part" id="loginBox"><button id="loginBtn" class="full">ログイン</button></div><div class="part" id="setupBox" hidden><button id="setupBtn" class="full">この内容で登録する</button></div><p class="msg" id="loginMsg" role="alert"></p></section>
 <section id="main" hidden>
 <div class="stats"><div class="stat"><b id="sAns">-</b><span>回答数</span></div><div class="stat"><b id="sIssued">-</b><span>発行したリンク</span></div></div>
-<div class="card"><h2 class="plain">回答者に見える画面</h2><p class="hint">実際に答える画面を見本で確認できます。見本では送信しても保存されません。</p><a class="btn" href="index.html?v=8#preview" target="_blank" rel="noopener">回答画面の見本を開く</a></div>
-<div class="card"><h2 class="plain">回答用リンクを作る</h2><p class="hint">保護者の方に送るリンクを作ります。1つのリンクで答えられるのは1人1回です。</p>
+<div class="card"><h2 class="plain">回答者に見える画面</h2><p class="hint">実際に答える画面を見本で確認できます。見本では送信しても保存されません。</p><a class="btn" href="index.html?v=9#preview" target="_blank" rel="noopener">回答画面の見本を開く</a></div>
+<div class="card"><h2 class="plain">貼り出し用のQRコード</h2><p class="hint">大会の日に、受付の横やみなさんが通る階段の柱などに貼る用紙です。全員が同じQRコードを読み取って答えます。</p>
+<ul class="hint"><li>同じスマートフォンからは1回だけ答えられます。</li><li>別のスマートフォンやブラウザからは、もう一度答えることができます。</li><li>大会が終わったら「回答の受付を締め切る」を押してください。</li></ul>
+<p class="openState" id="openState"></p>
+<div class="part"><button id="posterBtn" class="full">貼り出し用紙を印刷・PDF保存</button></div><div class="part"><button id="openBtn" class="sub full">回答の受付を始める</button></div><p class="msg" id="openMsg" role="alert"></p></div>
+<div class="card"><h2 class="plain">1人1回のリンクを作る（LINEやメールで送る場合）</h2><p class="hint">保護者の方へ個別に送るリンクを作ります。1つのリンクで答えられるのは1回だけなので、二重回答を確実に防げます。</p>
 <ul class="hint"><li>配る人数を入れて「リンクを作る」を押してください。</li><li>作ったリンクはこのときしか表示されません。必ずコピーして保管してください。</li><li>無記名を守るため、誰にどのリンクを送ったかは記録しないでください。</li></ul>
 <label class="label" for="n">作るリンクの数</label><div class="row"><input type="number" id="n" min="1" max="400" value="20"><button id="issueBtn">リンクを作る</button></div>
-<div class="part" id="linkBox" hidden><p class="hint" id="linkDone"></p><div class="links" id="links"></div><div class="part"><button id="printBtn" class="full">QRコードの用紙を印刷・PDF保存</button></div><div class="part"><button id="copyBtn" class="sub full">リンクをすべてコピー</button></div><p class="hint">保護者の方には、QRコードの用紙を1人1枚渡すか、リンクを1人1本ずつ送ってください。同じものを2人に渡すと、1人しか答えられません。</p></div>
+<div class="part" id="linkBox" hidden><p class="hint" id="linkDone"></p><div class="links" id="links"></div><div class="part"><button id="printBtn" class="full">手渡し用のQR用紙を印刷・PDF保存</button></div><div class="part"><button id="copyBtn" class="sub full">リンクをすべてコピー</button></div><p class="hint">保護者の方には、QRコードの用紙を1人1枚渡すか、リンクを1人1本ずつ送ってください。同じものを2人に渡すと、1人しか答えられません。</p></div>
 <p class="msg" id="issueMsg" role="alert"></p></div>
 <div class="card"><h2 class="plain">IDとパスワードの変更</h2><p class="hint">IDは英数字3〜30文字です。変更しない項目は空欄のままで構いません。パスワードは8文字以上にしてください。</p>
 <div class="part"><input type="password" id="curPass" placeholder="現在のパスワード" autocomplete="current-password" aria-label="現在のパスワード"></div>
@@ -30,5 +34,6 @@
 <h2 class="sectionTitle">回答の集計結果</h2><p class="hint">送られた回答をまとめた画面です。回答はここではできません。</p><div class="card"><div class="row"><button id="xlsxBtn">Excelで保存</button><button id="reloadBtn" class="sub">最新にする</button></div></div><div id="result"></div></section>
 </main>
 <div id="qrSheet" class="qrSheet"></div>
-<script src="config.js?v=8"></script><script src="questions.js?v=8"></script><script src="qr.js?v=8"></script><script src="admin.js?v=8"></script>
+<div id="posterSheet" class="posterSheet"></div>
+<script src="config.js?v=9"></script><script src="questions.js?v=9"></script><script src="qr.js?v=9"></script><script src="admin.js?v=9"></script>
 </body></html>
