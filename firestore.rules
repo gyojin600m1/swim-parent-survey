@@ -27,6 +27,7 @@ service cloud.firestore {
     }
 
     match /meta/setup {
+      allow get: if true;
       allow create: if signedIn()
         && request.resource.data.keys().size() == 0
         && existsAfter(/databases/$(db)/documents/admins/$(request.auth.uid));

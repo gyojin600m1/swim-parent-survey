@@ -160,6 +160,11 @@ async function issue(){
  }catch(e){m.textContent="発行できませんでした。"}
  $("#issueBtn").disabled=false;
 }
-$("#loginBtn").addEventListener("click",login);$("#setupBtn").addEventListener("click",setup);$("#changeBtn").addEventListener("click",changeLogin);if(location.hash==="#setup")$("#setupBox").hidden=false;$("#xlsxBtn").addEventListener("click",saveXlsx);$("#reloadBtn").addEventListener("click",()=>load());
+$("#loginBtn").addEventListener("click",login);$("#setupBtn").addEventListener("click",setup);$("#changeBtn").addEventListener("click",changeLogin);$("#xlsxBtn").addEventListener("click",saveXlsx);$("#reloadBtn").addEventListener("click",()=>load());
 $("#issueBtn").addEventListener("click",issue);$("#copyBtn").addEventListener("click",()=>navigator.clipboard.writeText($("#links").textContent));
-if(LIVE)$("#login").hidden=false;else{$("#sampleNote").hidden=false;$("#main").hidden=false;load()}
+async function initLogin(){
+ const r=await fetch(`${FS}/meta/setup?key=${CFG.apiKey}`).catch(()=>null);
+ if(r&&r.status===404){$("#loginTitle").textContent="担当者の登録";$("#loginHint").hidden=false;$("#loginBox").hidden=true;$("#setupBox").hidden=false;$("#pass").autocomplete="new-password"}
+ $("#login").hidden=false;
+}
+if(LIVE)initLogin();else{$("#sampleNote").hidden=false;$("#main").hidden=false;load()}
