@@ -5,12 +5,12 @@
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none';script-src 'self';style-src 'self';connect-src https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com;base-uri 'none';form-action 'none'">
 <title>アンケート集計（担当者用）</title>
-<link rel="stylesheet" href="style.css?v=4"></head><body>
+<link rel="stylesheet" href="style.css?v=5"></head><body>
 <header class="head"><h1>アンケート集計（担当者用）</h1></header>
 <main class="wrap">
 <p class="note" id="sampleNote" hidden>サンプルの架空データで表示しています。</p>
 <section id="login" class="card" hidden><h2 class="plain">ログイン</h2>
-<div class="part"><input type="text" id="email" placeholder="ID" autocomplete="username" autocapitalize="none" spellcheck="false" aria-label="ID"></div>
+<div class="part"><input type="text" id="loginId" placeholder="ID" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="ID"></div>
 <div class="part"><input type="password" id="pass" placeholder="パスワード" autocomplete="current-password" aria-label="パスワード"></div>
 <div class="part"><button id="loginBtn" class="full">ログイン</button></div><div class="part" id="setupBox" hidden><button id="setupBtn" class="sub full">この内容で担当者を登録</button></div><p class="msg" id="loginMsg" role="alert"></p></section>
 <section id="main" hidden>
@@ -28,5 +28,5 @@
 <div class="part"><button id="changeBtn" class="full">変更する</button></div><p class="msg" id="changeMsg" role="alert"></p></div>
 <div id="result"></div></section>
 </main>
-<script src="config.js?v=4"></script><script src="questions.js?v=4"></script><script src="admin.js?v=4"></script>
+<script src="config.js?v=5"></script><script src="questions.js?v=5"></script><script src="admin.js?v=5"></script>
 </body></html>

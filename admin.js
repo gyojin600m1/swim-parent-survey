@@ -12,23 +12,25 @@ async function listAll(col){
  return out;
 }
 const AUTH="https://identitytoolkit.googleapis.com/v1/accounts";
-const toEmail=id=>id.includes("@")?id:`${id.toLowerCase()}@${CFG.projectId}.firebaseapp.com`;
+const toEmail=id=>`${id.toLowerCase()}@${CFG.projectId}.firebaseapp.com`;
 const authCall=async(path,body)=>{
  const r=await fetch(`${AUTH}:${path}?key=${CFG.apiKey}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
  const d=await r.json();if(!r.ok)throw new Error(d.error?.message||"auth");return d;
 };
 const fsCommit=async(writes,tok=idToken)=>{const r=await fetch(`${FS}:commit`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${tok}`},body:JSON.stringify({writes})});if(!r.ok)throw new Error("firestore")};
 const signInPw=(id,password)=>authCall("signInWithPassword",{email:toEmail(id),password,returnSecureToken:true});
-const validId=id=>/^[A-Za-z0-9._-]{3,30}$/.test(id)||id.includes("@");
+const validId=id=>/^[A-Za-z0-9._-]{3,30}$/.test(id);
 function enter(d,id){idToken=d.idToken;curUid=d.localId;curId=id;$("#pass").value="";$("#login").hidden=true;$("#main").hidden=false}
 async function login(){
- const m=$("#loginMsg"),id=$("#email").value.trim();m.textContent="";$("#loginBtn").disabled=true;
+ const m=$("#loginMsg"),id=$("#loginId").value.trim();m.textContent="";
+ if(!validId(id)){m.textContent="IDかパスワードが違います。";return}
+ $("#loginBtn").disabled=true;
  try{const d=await signInPw(id,$("#pass").value);idToken=d.idToken;await load();enter(d,id)}
  catch(e){m.textContent=e.message==="firestore"||/^\d+$/.test(e.message)?"担当者として登録されていないか、通信できませんでした。":"IDかパスワードが違います。"}
  $("#loginBtn").disabled=false;
 }
 async function setup(){
- const m=$("#loginMsg"),id=$("#email").value.trim(),pw=$("#pass").value;m.textContent="";
+ const m=$("#loginMsg"),id=$("#loginId").value.trim(),pw=$("#pass").value;m.textContent="";
  if(!validId(id)){m.textContent="IDは英数字3〜30文字で決めてください。";return}
  if(pw.length<8){m.textContent="パスワードは8文字以上にしてください。";return}
  let d;
@@ -46,7 +48,7 @@ async function changeLogin(){
  m.textContent="";
  if(!cur){m.textContent="現在のパスワードを入れてください。";return}
  if(!nid&&!np){m.textContent="新しいIDか新しいパスワードを入れてください。";return}
- if(nid&&!/^[A-Za-z0-9._-]{3,30}$/.test(nid)){m.textContent="IDは英数字3〜30文字で決めてください。";return}
+ if(nid&&!validId(nid)){m.textContent="IDは英数字3〜30文字で決めてください。";return}
  if(np&&np.length<8){m.textContent="パスワードは8文字以上にしてください。";return}
  if(np!==np2){m.textContent="新しいパスワードが確認欄と一致しません。";return}
  const changeId=nid&&toEmail(nid)!==toEmail(curId);
