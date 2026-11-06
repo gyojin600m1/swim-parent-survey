@@ -1,4 +1,4 @@
-const CFG=window.SURVEY_CONFIG,LIVE=!!(CFG.apiKey&&CFG.projectId);
+const CFG=window.SURVEY_CONFIG,PREVIEW=location.hash==="#preview",LIVE=!!(CFG.apiKey&&CFG.projectId)&&!PREVIEW;
 const $=s=>document.querySelector(s);
 const DOCS=`projects/${CFG.projectId}/databases/(default)/documents`;
 const FS=`https://firestore.googleapis.com/v1/${DOCS}`;
@@ -49,7 +49,7 @@ function render(){
    const d=document.createElement("div");d.className="part";d.dataset.part=part.id;
    if(part.label){const p=document.createElement("p");p.className="label";p.textContent=part.label;d.append(p)}
    if(part.type==="text"){
-    const t=document.createElement("textarea");t.maxLength=2000;t.addEventListener("input",()=>{const v=t.value.trim();if(v)answers[part.id]=t.value;else delete answers[part.id]});d.append(t);
+    const t=document.createElement("textarea");t.maxLength=2000;t.placeholder="ここに入力してください（空欄でも構いません）";t.setAttribute("aria-label",part.label);t.addEventListener("input",()=>{const v=t.value.trim();if(v)answers[part.id]=t.value;else delete answers[part.id]});d.append(t);
    }else for(const o of part.options){
     d.append(optEl(part,o,part.type));
     if(o==="その他"&&part.other){const b=document.createElement("div");b.className="otherBox";b.dataset.other=part.other;b.hidden=true;
@@ -111,7 +111,7 @@ async function submit(){
     {delete:`${DOCS}/claims/${session.uid}`,currentDocument:{exists:true}}],session.idToken);
    localStorage.removeItem(KEY);
   }
-  history.replaceState(null,"",location.pathname);show("#done");
+  if(LIVE)history.replaceState(null,"",location.pathname);show("#done");
  }catch(e){
   msg.textContent=e.message==="denied"?"送信できませんでした。すでに回答済みの可能性があります。":"送信できませんでした。電波の良い場所でもう一度押してください。";
  }
