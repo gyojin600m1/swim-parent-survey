@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none';script-src 'self';style-src 'self';connect-src https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com;base-uri 'none';form-action 'none'">
+<title>子供たちが水泳を続けられる環境についてのアンケート</title>
+<link rel="stylesheet" href="style.css"></head><body>
+<header class="head"><h1>子供たちが水泳を続けられる環境についてのアンケート</h1><p>保護者の皆様へ　無記名・任意回答</p></header>
+<main class="wrap">
+<p class="note" id="previewNote" hidden>プレビュー表示です。送信しても回答は保存されません。</p>
+<section id="start"><div class="card">
+<p class="lead">日頃の指導や相談のしやすさ、水泳を続けるうえでの困りごとを伺い、今後の環境づくりに役立てるためのアンケートです。良いと感じている点も、改善を希望する点もお聞かせください。</p>
+<ul><li>ご家庭で感じていることをお答えください。答えにくい質問は空欄でも構いません。</li>
+<li>氏名・クラブ名・学校名・コーチ名は記入しないでください。詳しい日付・種目・タイムなど、本人が推測できる情報も避けてください。</li>
+<li>お名前や連絡先の入力はありません。回答は、どのリンクから送られたものか分からない形で保存します。</li>
+<li>回答できるのは1つのリンクにつき1回です。</li></ul>
+<button id="startBtn" class="full">回答を始める</button><p class="msg" id="startMsg" role="alert"></p>
+</div></section>
+<section id="form" hidden><div id="questions"></div>
+<div class="card"><h2>回答の取扱いについて</h2>
+<p class="lead">回答原文は担当者を限定して管理し、関係者への共有は集計・要約した形で行うことを想定しています。自由記述も個人が推測される情報を除いて扱います。</p>
+<p class="lead">このアンケートを元に、今後の水泳連盟の改革・発展に努めてまいります。</p>
+<button id="sendBtn" class="full">回答を送信する</button><p class="msg" id="sendMsg" role="alert"></p></div></section>
+<section id="done" hidden><div class="card center"><h2 class="plain">ご協力ありがとうございました。</h2><p class="lead">回答を受け付けました。このページは閉じて構いません。</p></div></section>
+<section id="blocked" hidden><div class="card center"><h2 id="blockedTitle" class="plain"></h2><p class="lead" id="blockedText"></p></div></section>
+</main>
+<script src="config.js"></script><script src="questions.js"></script><script src="survey.js"></script>
+</body></html>

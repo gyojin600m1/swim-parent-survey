@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() { return signedIn() && exists(/databases/$(db)/documents/admins/$(request.auth.uid)); }
+    function str(d, k, n) { return !(k in d) || (d[k] is string && d[k].size() <= n); }
+    function arr(d, k, n) { return !(k in d) || (d[k] is list && d[k].size() <= n); }
+    function validAnswer(d) {
+      return d.keys().hasOnly(['q1','q2_1','q2_2','q2_3','q2_4','q3','q3o','q4','q4r','q5_1','q5_2','q6','q6o','q7','q7o','q8a','q8b'])
+        && d.keys().size() > 0
+        && str(d,'q1',40) && str(d,'q2_1',40) && str(d,'q2_2',40) && str(d,'q2_3',40) && str(d,'q2_4',40)
+        && str(d,'q4',40) && str(d,'q5_1',40) && str(d,'q5_2',40)
+        && arr(d,'q3',11) && arr(d,'q4r',6) && arr(d,'q6',10) && arr(d,'q7',6)
+        && str(d,'q3o',200) && str(d,'q6o',200) && str(d,'q7o',200)
+        && str(d,'q8a',2000) && str(d,'q8b',2000);
+    }
+
+    match /admins/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+    }
+
+    // 配布したリンクのハッシュ。リンクそのものは保存しない。
+    match /tickets/{hash} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && request.resource.data.keys().size() == 0;
+    }
+
+    // 使用済みの印。回答には結びつかない。
+    match /used/{hash} {
+      allow list: if isAdmin();
+      allow create: if signedIn()
+        && exists(/databases/$(db)/documents/tickets/$(hash))
+        && request.resource.data.keys().size() == 0
+        && getAfter(/databases/$(db)/documents/claims/$(request.auth.uid)).data.t == hash;
+    }
+
+    // 回答中の一時的な受付票。回答の送信と同時に消える。
+    match /claims/{uid} {
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['t','r'])
+        && request.resource.data.r is string && request.resource.data.r.size() == 32
+        && !exists(/databases/$(db)/documents/used/$(request.resource.data.t))
+        && existsAfter(/databases/$(db)/documents/used/$(request.resource.data.t));
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // 回答本体。リンク・利用者の情報を持たない。
+    match /responses/{id} {
+      allow read: if isAdmin();
+      allow create: if signedIn()
+        && exists(/databases/$(db)/documents/claims/$(request.auth.uid))
+        && !existsAfter(/databases/$(db)/documents/claims/$(request.auth.uid))
+        && get(/databases/$(db)/documents/claims/$(request.auth.uid)).data.r == id
+        && validAnswer(request.resource.data);
+    }
+  }
+}
