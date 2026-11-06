@@ -17,6 +17,19 @@ service cloud.firestore {
 
     match /admins/{uid} {
       allow get: if signedIn() && request.auth.uid == uid;
+      // 最初の担当者だけ、meta/setup と同時に登録できる。以後は担当者が引き継ぐ。
+      allow create: if isAdmin() || (signedIn() && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider == 'password'
+        && request.resource.data.keys().size() == 0
+        && !exists(/databases/$(db)/documents/meta/setup)
+        && existsAfter(/databases/$(db)/documents/meta/setup));
+      allow delete: if isAdmin();
+    }
+
+    match /meta/setup {
+      allow create: if signedIn()
+        && request.resource.data.keys().size() == 0
+        && existsAfter(/databases/$(db)/documents/admins/$(request.auth.uid));
     }
 
     // 配布したリンクのハッシュ。リンクそのものは保存しない。

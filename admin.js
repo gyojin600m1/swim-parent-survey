@@ -1,7 +1,7 @@
 const CFG=window.SURVEY_CONFIG,LIVE=!!(CFG.apiKey&&CFG.projectId);
 const $=s=>document.querySelector(s);
 const DOCS=`projects/${CFG.projectId}/databases/(default)/documents`,FS=`https://firestore.googleapis.com/v1/${DOCS}`;
-let idToken="",rows=[];
+let idToken="",curUid="",curId="",rows=[];
 const hdr=()=>({"Content-Type":"application/json",Authorization:`Bearer ${idToken}`});
 const fromVal=v=>"arrayValue"in v?(v.arrayValue.values||[]).map(x=>x.stringValue):v.stringValue;
 async function listAll(col){
@@ -11,26 +11,62 @@ async function listAll(col){
   const d=await r.json();out.push(...(d.documents||[]));page=d.nextPageToken||""}while(page);
  return out;
 }
+const AUTH="https://identitytoolkit.googleapis.com/v1/accounts";
+const toEmail=id=>id.includes("@")?id:`${id.toLowerCase()}@${CFG.projectId}.firebaseapp.com`;
+const authCall=async(path,body)=>{
+ const r=await fetch(`${AUTH}:${path}?key=${CFG.apiKey}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+ const d=await r.json();if(!r.ok)throw new Error(d.error?.message||"auth");return d;
+};
+const fsCommit=async(writes,tok=idToken)=>{const r=await fetch(`${FS}:commit`,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${tok}`},body:JSON.stringify({writes})});if(!r.ok)throw new Error("firestore")};
+const signInPw=(id,password)=>authCall("signInWithPassword",{email:toEmail(id),password,returnSecureToken:true});
+const validId=id=>/^[A-Za-z0-9._-]{3,30}$/.test(id)||id.includes("@");
+function enter(d,id){idToken=d.idToken;curUid=d.localId;curId=id;$("#pass").value="";$("#login").hidden=true;$("#main").hidden=false}
 async function login(){
- const m=$("#loginMsg");m.textContent="";$("#loginBtn").disabled=true;
- try{
-  const r=await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${CFG.apiKey}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:$("#email").value.trim(),password:$("#pass").value,returnSecureToken:true})});
-  if(!r.ok)throw new Error("login");
-  idToken=(await r.json()).idToken;$("#pass").value="";await load();
-  $("#login").hidden=true;$("#main").hidden=false;
- }catch(e){m.textContent=e.message==="login"?"メールアドレスかパスワードが違います。":"担当者として登録されていないか、通信できませんでした。"}
+ const m=$("#loginMsg"),id=$("#email").value.trim();m.textContent="";$("#loginBtn").disabled=true;
+ try{const d=await signInPw(id,$("#pass").value);idToken=d.idToken;await load();enter(d,id)}
+ catch(e){m.textContent=e.message==="firestore"||/^\d+$/.test(e.message)?"担当者として登録されていないか、通信できませんでした。":"IDかパスワードが違います。"}
  $("#loginBtn").disabled=false;
 }
 async function setup(){
- const m=$("#loginMsg");m.textContent="";
+ const m=$("#loginMsg"),id=$("#email").value.trim(),pw=$("#pass").value;m.textContent="";
+ if(!validId(id)){m.textContent="IDは英数字3〜30文字で決めてください。";return}
+ if(pw.length<8){m.textContent="パスワードは8文字以上にしてください。";return}
+ let d;
  try{
-  const r=await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${CFG.apiKey}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:$("#email").value.trim(),password:$("#pass").value,returnSecureToken:true})});
-  if(!r.ok)throw new Error("signup");
-  const d=await r.json();idToken=d.idToken;
-  const w=await fetch(`${FS}:commit`,{method:"POST",headers:hdr(),body:JSON.stringify({writes:[{update:{name:`${DOCS}/admins/${d.localId}`,fields:{}},currentDocument:{exists:false}}]})});
-  if(!w.ok)throw new Error("admin");
-  $("#pass").value="";history.replaceState(null,"",location.pathname);await load();$("#login").hidden=true;$("#main").hidden=false;
- }catch(e){m.textContent=e.message==="signup"?"登録できませんでした。パスワードは6文字以上にしてください。":"担当者の登録を受け付けられませんでした。"}
+  d=await authCall("signUp",{email:toEmail(id),password:pw,returnSecureToken:true});idToken=d.idToken;
+  await fsCommit([{update:{name:`${DOCS}/admins/${d.localId}`,fields:{}},currentDocument:{exists:false}},{update:{name:`${DOCS}/meta/setup`,fields:{}},currentDocument:{exists:false}}]);
+  const done=d;d=null;history.replaceState(null,"",location.pathname);enter(done,id);await load();
+ }catch(e){
+  if(!d&&idToken){m.textContent="";return}
+  if(d)await authCall("delete",{idToken:d.idToken}).catch(()=>{});
+  m.textContent=e.message==="EMAIL_EXISTS"?"このIDは使えません。":"登録できませんでした。初回登録はすでに完了している可能性があります。"}
+}
+async function changeLogin(){
+ const m=$("#changeMsg"),cur=$("#curPass").value,nid=$("#newId").value.trim(),np=$("#newPass").value,np2=$("#newPass2").value;
+ m.textContent="";
+ if(!cur){m.textContent="現在のパスワードを入れてください。";return}
+ if(!nid&&!np){m.textContent="新しいIDか新しいパスワードを入れてください。";return}
+ if(nid&&!/^[A-Za-z0-9._-]{3,30}$/.test(nid)){m.textContent="IDは英数字3〜30文字で決めてください。";return}
+ if(np&&np.length<8){m.textContent="パスワードは8文字以上にしてください。";return}
+ if(np!==np2){m.textContent="新しいパスワードが確認欄と一致しません。";return}
+ const changeId=nid&&toEmail(nid)!==toEmail(curId);
+ if(!changeId&&!np){m.textContent="今と同じIDです。";return}
+ $("#changeBtn").disabled=true;
+ let step="cur",made=null;
+ try{
+  const old=await signInPw(curId,cur);step="change";
+  if(changeId){
+   made=await authCall("signUp",{email:toEmail(nid),password:np||cur,returnSecureToken:true});
+   await fsCommit([{update:{name:`${DOCS}/admins/${made.localId}`,fields:{}},currentDocument:{exists:false}},{delete:`${DOCS}/admins/${old.localId}`}],old.idToken);
+   const keep=made;made=null;await authCall("delete",{idToken:old.idToken}).catch(()=>{});
+   idToken=keep.idToken;curUid=keep.localId;curId=nid;
+  }else{const d=await authCall("update",{idToken:old.idToken,password:np,returnSecureToken:true});idToken=d.idToken}
+  for(const s of["#curPass","#newId","#newPass","#newPass2"])$(s).value="";
+  m.textContent=changeId?"変更しました。次回から新しいIDでログインしてください。":"パスワードを変更しました。";
+ }catch(e){
+  if(made)await authCall("delete",{idToken:made.idToken}).catch(()=>{});
+  m.textContent=step==="cur"?"現在のパスワードが違います。":e.message==="EMAIL_EXISTS"?"このIDは使えません。":"変更できませんでした。"}
+ $("#changeBtn").disabled=false;
 }
 async function load(){
  if(!LIVE){rows=sample();$("#sIssued").textContent="30";draw();return}
@@ -122,6 +158,6 @@ async function issue(){
  }catch(e){m.textContent="発行できませんでした。"}
  $("#issueBtn").disabled=false;
 }
-$("#loginBtn").addEventListener("click",login);$("#setupBtn").addEventListener("click",setup);if(location.hash==="#setup")$("#setupBox").hidden=false;$("#xlsxBtn").addEventListener("click",saveXlsx);$("#reloadBtn").addEventListener("click",()=>load());
+$("#loginBtn").addEventListener("click",login);$("#setupBtn").addEventListener("click",setup);$("#changeBtn").addEventListener("click",changeLogin);if(location.hash==="#setup")$("#setupBox").hidden=false;$("#xlsxBtn").addEventListener("click",saveXlsx);$("#reloadBtn").addEventListener("click",()=>load());
 $("#issueBtn").addEventListener("click",issue);$("#copyBtn").addEventListener("click",()=>navigator.clipboard.writeText($("#links").textContent));
 if(LIVE)$("#login").hidden=false;else{$("#sampleNote").hidden=false;$("#main").hidden=false;load()}
