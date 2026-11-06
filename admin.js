@@ -147,6 +147,15 @@ function saveXlsx(){
 /* --- 個別リンク --- */
 const hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
 const sha=async s=>hex(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)));
+function buildSheet(urls){
+ const sheet=$("#qrSheet");sheet.textContent="";const NS="http://www.w3.org/2000/svg";
+ for(const u of urls){
+  const{d,size}=QR.toPath(QR.encode(u)),card=el("div","qrCard"),svg=document.createElementNS(NS,"svg"),p=document.createElementNS(NS,"path");
+  svg.setAttribute("viewBox",`0 0 ${size} ${size}`);svg.setAttribute("class","qrCode");svg.setAttribute("shape-rendering","crispEdges");p.setAttribute("d",d);p.setAttribute("fill","#000");svg.append(p);
+  const t=el("div","qrText");t.append(el("b","","保護者アンケート"),el("p","","子供たちが水泳を続けられる環境についてのアンケートです。"),el("p","","スマートフォンのカメラでQRコードを読み取ってください。"),el("p","","無記名です。お名前の入力はありません。回答できるのは1回です。"));
+  card.append(svg,t);sheet.append(card);
+ }
+}
 async function issue(){
  const m=$("#issueMsg");m.textContent="";const n=Math.min(400,Math.max(1,+$("#n").value||0));
  if(!LIVE){m.textContent="サンプル表示では発行できません。";return}
@@ -156,12 +165,12 @@ async function issue(){
   const writes=await Promise.all(toks.map(async t=>({update:{name:`${DOCS}/tickets/${await sha(t)}`,fields:{}},currentDocument:{exists:false}})));
   const r=await fetch(`${FS}:commit`,{method:"POST",headers:hdr(),body:JSON.stringify({writes})});
   if(!r.ok)throw new Error();
-  $("#links").textContent=toks.map(t=>`${base}#t=${t}`).join("\n");$("#linkBox").hidden=false;await load();
+  const urls=toks.map(t=>`${base}#t=${t}`);$("#links").textContent=urls.join("\n");$("#linkDone").textContent=`リンクを${n}本作りました。この画面を閉じると、もう一度表示できません。`;buildSheet(urls);$("#linkBox").hidden=false;await load();
  }catch(e){m.textContent="発行できませんでした。"}
  $("#issueBtn").disabled=false;
 }
 $("#loginBtn").addEventListener("click",login);$("#setupBtn").addEventListener("click",setup);$("#changeBtn").addEventListener("click",changeLogin);$("#xlsxBtn").addEventListener("click",saveXlsx);$("#reloadBtn").addEventListener("click",()=>load());
-$("#issueBtn").addEventListener("click",issue);$("#copyBtn").addEventListener("click",()=>navigator.clipboard.writeText($("#links").textContent));
+$("#issueBtn").addEventListener("click",issue);$("#printBtn").addEventListener("click",()=>window.print());$("#copyBtn").addEventListener("click",()=>navigator.clipboard.writeText($("#links").textContent));
 async function initLogin(){
  const r=await fetch(`${FS}/meta/setup?key=${CFG.apiKey}`).catch(()=>null);
  if(r&&r.status===404){$("#loginTitle").textContent="担当者の登録";$("#loginHint").hidden=false;$("#loginBox").hidden=true;$("#setupBox").hidden=false;$("#pass").autocomplete="new-password"}
