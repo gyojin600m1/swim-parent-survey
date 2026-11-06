@@ -1,2 +1,2 @@
-// Firebase接続情報。空のあいだはプレビュー表示(保存しない)で動く。
-window.SURVEY_CONFIG = { apiKey: "", projectId: "" };
+// 回答ページから接続するFirebaseの公開設定。権限は firestore.rules で制御している。
+window.SURVEY_CONFIG = { apiKey: "AIzaSyCcwYC3ZInV3C5TPRXzLLvDPDRa5vj5yAw", projectId: "swim-parent-survey-2026" };

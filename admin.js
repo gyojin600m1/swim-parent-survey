@@ -21,6 +21,17 @@ async function login(){
  }catch(e){m.textContent=e.message==="login"?"メールアドレスかパスワードが違います。":"担当者として登録されていないか、通信できませんでした。"}
  $("#loginBtn").disabled=false;
 }
+async function setup(){
+ const m=$("#loginMsg");m.textContent="";
+ try{
+  const r=await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${CFG.apiKey}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:$("#email").value.trim(),password:$("#pass").value,returnSecureToken:true})});
+  if(!r.ok)throw new Error("signup");
+  const d=await r.json();idToken=d.idToken;
+  const w=await fetch(`${FS}:commit`,{method:"POST",headers:hdr(),body:JSON.stringify({writes:[{update:{name:`${DOCS}/admins/${d.localId}`,fields:{}},currentDocument:{exists:false}}]})});
+  if(!w.ok)throw new Error("admin");
+  $("#pass").value="";history.replaceState(null,"",location.pathname);await load();$("#login").hidden=true;$("#main").hidden=false;
+ }catch(e){m.textContent=e.message==="signup"?"登録できませんでした。パスワードは6文字以上にしてください。":"担当者の登録を受け付けられませんでした。"}
+}
 async function load(){
  if(!LIVE){rows=sample();$("#sIssued").textContent="30";draw();return}
  const docs=await listAll("responses");
@@ -111,6 +122,6 @@ async function issue(){
  }catch(e){m.textContent="発行できませんでした。"}
  $("#issueBtn").disabled=false;
 }
-$("#loginBtn").addEventListener("click",login);$("#xlsxBtn").addEventListener("click",saveXlsx);$("#reloadBtn").addEventListener("click",()=>load());
+$("#loginBtn").addEventListener("click",login);$("#setupBtn").addEventListener("click",setup);if(location.hash==="#setup")$("#setupBox").hidden=false;$("#xlsxBtn").addEventListener("click",saveXlsx);$("#reloadBtn").addEventListener("click",()=>load());
 $("#issueBtn").addEventListener("click",issue);$("#copyBtn").addEventListener("click",()=>navigator.clipboard.writeText($("#links").textContent));
 if(LIVE)$("#login").hidden=false;else{$("#sampleNote").hidden=false;$("#main").hidden=false;load()}
