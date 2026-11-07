@@ -1,39 +1,80 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none';script-src 'self';style-src 'self';connect-src https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com;base-uri 'none';form-action 'none'">
 <title>アンケート集計（担当者用）</title>
-<link rel="stylesheet" href="style.css?v=10"></head><body>
-<header class="head"><h1>アンケート集計（担当者用）</h1></header>
+<link rel="stylesheet" href="style.css?v=11">
+</head>
+<body>
+<header class="head"><div class="headerInner"><p class="eyebrow">保護者アンケート</p><h1>アンケート集計（担当者用）</h1><p>受付・QRコード・集計をここで管理できます。</p></div></header>
 <main class="wrap">
-<p class="note" id="sampleNote" hidden>サンプルの架空データで表示しています。</p>
-<section id="login" class="card" hidden><h2 class="plain" id="loginTitle">ログイン</h2><p class="hint" id="loginHint" hidden>最初に使うIDとパスワードを決めてください。IDは英数字3〜30文字、パスワードは8文字以上です。</p>
-<div class="part"><input type="text" id="loginId" placeholder="ID" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="ID"></div>
-<div class="part"><input type="password" id="pass" placeholder="パスワード" autocomplete="current-password" aria-label="パスワード"></div>
-<div class="part" id="loginBox"><button id="loginBtn" class="full">ログイン</button></div><div class="part" id="setupBox" hidden><button id="setupBtn" class="full">この内容で登録する</button></div><p class="msg" id="loginMsg" role="alert"></p></section>
+<p class="note" id="sampleNote" hidden>担当者画面の見本です。架空の24件を表示しています。受付の変更や印刷を試せます。</p>
+<section id="login" class="card loginCard" hidden>
+<h2 class="plain" id="loginTitle">ログイン</h2>
+<p class="hint" id="loginHint" hidden>最初に使うIDとパスワードを決めてください。IDは英数字と . _ - の3〜30文字、パスワードは8文字以上です。</p>
+<div class="part"><label class="label" for="loginId">担当者ID</label><input type="text" id="loginId" autocomplete="username" autocapitalize="none" spellcheck="false"></div>
+<div class="part"><label class="label" for="pass">パスワード</label><input type="password" id="pass" autocomplete="current-password"></div>
+<div class="part" id="loginBox"><button id="loginBtn" class="full">ログイン</button></div>
+<div class="part" id="setupBox" hidden><button id="setupBtn" class="full">この内容で登録する</button></div>
+<p class="msg" id="loginMsg" role="alert"></p>
+</section>
 <section id="main" hidden>
-<div class="stats"><div class="stat"><b id="sAns">-</b><span>回答数</span></div><div class="stat"><b id="sIssued">-</b><span>発行したリンク</span></div></div>
-<div class="card"><h2 class="plain">回答者に見える画面</h2><p class="hint">実際に答える画面を見本で確認できます。見本では送信しても保存されません。</p><a class="btn" href="index.html?v=10#preview" target="_blank" rel="noopener">回答画面の見本を開く</a></div>
-<div class="card"><h2 class="plain">貼り出し用のQRコード</h2><p class="hint">大会の日に、受付の横やみなさんが通る階段の柱などに貼る用紙です。全員が同じQRコードを読み取って答えます。</p>
-<ul class="hint"><li>同じスマートフォンからは1回だけ答えられます。</li><li>別のスマートフォンやブラウザからは、もう一度答えることができます。</li><li>大会が終わったら「回答の受付を締め切る」を押してください。</li></ul>
-<p class="openState" id="openState"></p>
-<div class="part"><button id="posterBtn" class="full">貼り出し用紙を印刷・PDF保存</button></div><div class="part"><button id="openBtn" class="sub full">回答の受付を始める</button></div><p class="msg" id="openMsg" role="alert"></p></div>
-<div class="card"><h2 class="plain">1人1回のリンクを作る（LINEやメールで送る場合）</h2><p class="hint">保護者の方へ個別に送るリンクを作ります。1つのリンクで答えられるのは1回だけなので、二重回答を確実に防げます。</p>
-<ul class="hint"><li>配る人数を入れて「リンクを作る」を押してください。</li><li>作ったリンクはこのときしか表示されません。必ずコピーして保管してください。</li><li>無記名を守るため、誰にどのリンクを送ったかは記録しないでください。</li></ul>
-<label class="label" for="n">作るリンクの数</label><div class="row"><input type="number" id="n" min="1" max="400" value="20"><button id="issueBtn">リンクを作る</button></div>
-<div class="part" id="linkBox" hidden><p class="hint" id="linkDone"></p><div class="links" id="links"></div><div class="part"><button id="printBtn" class="full">手渡し用のQR用紙を印刷・PDF保存</button></div><div class="part"><button id="copyBtn" class="sub full">リンクをすべてコピー</button></div><p class="hint">保護者の方には、QRコードの用紙を1人1枚渡すか、リンクを1人1本ずつ送ってください。同じものを2人に渡すと、1人しか答えられません。</p></div>
-<p class="msg" id="issueMsg" role="alert"></p></div>
-<div class="card"><h2 class="plain">IDとパスワードの変更</h2><p class="hint">IDは英数字3〜30文字です。変更しない項目は空欄のままで構いません。パスワードは8文字以上にしてください。</p>
-<div class="part"><input type="password" id="curPass" placeholder="現在のパスワード" autocomplete="current-password" aria-label="現在のパスワード"></div>
-<div class="part"><input type="text" id="newId" placeholder="新しいID" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="新しいID"></div>
-<div class="part"><input type="password" id="newPass" placeholder="新しいパスワード" autocomplete="new-password" aria-label="新しいパスワード"></div>
-<div class="part"><input type="password" id="newPass2" placeholder="新しいパスワード（確認）" autocomplete="new-password" aria-label="新しいパスワード（確認）"></div>
-<div class="part"><button id="changeBtn" class="full">変更する</button></div><p class="msg" id="changeMsg" role="alert"></p></div>
-<h2 class="sectionTitle">回答の集計結果</h2><p class="hint">送られた回答をまとめた画面です。回答はここではできません。</p><div class="card"><div class="row"><button id="xlsxBtn">Excelで保存</button><button id="reloadBtn" class="sub">最新にする</button></div></div><div id="result"></div></section>
+<nav class="adminTabs" role="tablist" aria-label="管理メニュー">
+<button role="tab" id="qrTab" aria-controls="qrPanel" data-tab="qrPanel" aria-selected="true">受付・QR</button>
+<button role="tab" id="resultsTab" aria-controls="resultsPanel" data-tab="resultsPanel" aria-selected="false" tabindex="-1">集計</button>
+<button role="tab" id="settingsTab" aria-controls="settingsPanel" data-tab="settingsPanel" aria-selected="false" tabindex="-1">設定</button>
+</nav>
+<div class="stats"><div class="stat"><b id="sAns">—</b><span>回答総数</span></div><div class="stat"><b id="sState">確認中</b><span>現在の受付</span></div></div>
+<p class="msg" id="mainMsg" role="alert"></p>
+<section id="qrPanel" data-panel role="tabpanel" aria-labelledby="qrTab">
+<div class="card">
+<h2 class="plain">回答の受付</h2>
+<p class="hint">大会の準備ができたら開始し、終了後に締め切ってください。受付を止めると、大・小どちらのQRからも送信できなくなります。</p>
+<p class="openState" id="openState" role="status">受付状況を確認しています…</p>
+<button id="openBtn" class="full" disabled>受付状況を確認中</button>
+<p class="msg" id="openMsg" role="alert"></p>
+</div>
+<div class="card">
+<h2 class="plain">大きいQR・小さいQR</h2>
+<p class="hint">どちらも同じアンケートにつながります。受付を始める前にも印刷できます。</p>
+<div class="commonQr" id="commonQr"></div>
+<div class="row"><button id="posterBtn">大きいQRを印刷<br><span class="buttonHint">A4・1枚</span></button><button id="smallQrBtn" class="sub">小さいQRを印刷<br><span class="buttonHint">A4・8枚つづり</span></button></div>
+<p class="hint printHint">印刷画面で「PDFとして保存」も選べます。</p>
+<div class="part"><label class="label" for="commonLink">回答用の共通リンク</label><input type="text" id="commonLink" readonly class="linkInput"></div>
+<div class="part"><button id="copyCommonBtn" class="sub full">回答用リンクをコピー</button><p class="hint" id="copyMsg" role="status"></p></div>
+<details class="part"><summary>回答回数と受付について</summary><p class="hint">同じブラウザでは送信済みの回答を重ねて送らないようにしています。別のブラウザ・端末や、保存情報を消した状態からは再回答できるため、回答は1人1回とご案内ください。以前に配った回答用リンクにも受付・締切が適用されます。</p></details>
+</div>
+<div class="card"><h2 class="plain">回答画面を確認する</h2><p class="hint">回答者の画面を、送信まで試せる見本です。</p><a class="btn" href="index.html?v=11#preview" target="_blank" rel="noopener">回答画面の見本を開く</a></div>
+</section>
+<section id="resultsPanel" data-panel role="tabpanel" aria-labelledby="resultsTab" hidden>
+<div class="card">
+<h2 class="plain">回答の集計結果</h2>
+<p class="hint">各項目の有効回答数をもとに割合を計算します。自由記述の原文は、必要な項目を開いて確認できます。</p>
+<button id="reloadBtn" class="sub full">最新にする</button><p class="hint updated" id="updatedAt" role="status"></p>
+<div class="part"><button id="xlsxBtn" class="full" disabled>共有用の集計をExcelで保存</button><p class="hint">選択肢別の件数と割合を保存します。</p></div>
+<details class="part"><summary>担当者用の回答原文を保存</summary><p class="hint">自由記述を含む回答一覧です。担当者を限定して保管し、関係者に共有する際は個人が推測できる情報を除いて要約してください。</p><button id="rawXlsxBtn" class="sub full" disabled>担当者用・回答原文をExcelで保存</button></details>
+</div>
+<div id="result"></div>
+</section>
+<section id="settingsPanel" data-panel role="tabpanel" aria-labelledby="settingsTab" hidden>
+<div class="card">
+<h2 class="plain">IDとパスワードの変更</h2>
+<p class="hint">IDは英数字と . _ - の3〜30文字、パスワードは8文字以上です。変更しない項目は空欄にしてください。変更後の内容は控えてください。</p>
+<div class="part"><label class="label" for="curPass">現在のパスワード</label><input type="password" id="curPass" autocomplete="current-password"></div>
+<div class="part"><label class="label" for="newId">新しいID</label><input type="text" id="newId" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
+<div class="part"><label class="label" for="newPass">新しいパスワード</label><input type="password" id="newPass" autocomplete="new-password"></div>
+<div class="part"><label class="label" for="newPass2">新しいパスワード（確認）</label><input type="password" id="newPass2" autocomplete="new-password"></div>
+<div class="part"><button id="changeBtn" class="full">変更する</button></div><p class="msg" id="changeMsg" role="alert"></p>
+</div>
+<button id="logoutBtn" class="sub full">ログアウト</button>
+</section>
+</section>
 </main>
-<div id="qrSheet" class="qrSheet"></div>
-<div id="posterSheet" class="posterSheet"></div>
-<script src="config.js?v=10"></script><script src="questions.js?v=10"></script><script src="qr.js?v=10"></script><script src="admin.js?v=10"></script>
-</body></html>
+<div id="qrSheet" class="qrSheet"></div><div id="posterSheet" class="posterSheet"></div>
+<script src="config.js?v=11"></script><script src="questions.js?v=11"></script><script src="qr.js?v=11"></script><script src="admin.js?v=11"></script>
+</body>
+</html>

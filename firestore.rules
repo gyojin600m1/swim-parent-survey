@@ -3,81 +3,126 @@ service cloud.firestore {
   match /databases/{db}/documents {
     function signedIn() { return request.auth != null; }
     function isAdmin() { return signedIn() && exists(/databases/$(db)/documents/admins/$(request.auth.uid)); }
-    function str(d, k, n) { return !(k in d) || (d[k] is string && d[k].size() <= n); }
-    function arr(d, k, n) { return !(k in d) || (d[k] is list && d[k].size() <= n); }
+    function accepting() { return exists(/databases/$(db)/documents/meta/open); }
+    function text(d, key, limit) {
+      return !(key in d) || (d[key] is string && d[key].size() > 0 && d[key].size() <= limit);
+    }
+    function choice(d, key, options) {
+      return !(key in d) || (d[key] is string && d[key] in options);
+    }
+    function choices(d, key, options) {
+      return !(key in d) || (d[key] is list && d[key].size() > 0
+        && d[key].size() == d[key].toSet().size() && d[key].toSet().hasOnly(options));
+    }
+    function exclusive(d, key, options) {
+      return !(key in d) || !d[key].hasAny(options) || d[key].size() == 1;
+    }
+    function other(d, key, parent) {
+      return !(key in d) || (parent in d && 'その他' in d[parent]);
+    }
     function validAnswer(d) {
       return d.keys().hasOnly(['q1','q2_1','q2_2','q2_3','q2_4','q3','q3o','q4','q4r','q5_1','q5_2','q6','q6o','q7','q7o','q8a','q8b'])
         && d.keys().size() > 0
-        && str(d,'q1',40) && str(d,'q2_1',40) && str(d,'q2_2',40) && str(d,'q2_3',40) && str(d,'q2_4',40)
-        && str(d,'q4',40) && str(d,'q5_1',40) && str(d,'q5_2',40)
-        && arr(d,'q3',11) && arr(d,'q4r',6) && arr(d,'q6',10) && arr(d,'q7',6)
-        && str(d,'q3o',200) && str(d,'q6o',200) && str(d,'q7o',200)
-        && str(d,'q8a',2000) && str(d,'q8b',2000);
+        && choice(d, 'q1', ['楽しんでいる','どちらかといえば楽しんでいる','どちらかといえば楽しんでいない','楽しんでいない','分からない'])
+        && choice(d, 'q2_1', ['十分ある','ある程度ある','あまりない','ほとんどない','分からない'])
+        && choice(d, 'q2_2', ['十分ある','ある程度ある','あまりない','ほとんどない','分からない'])
+        && choice(d, 'q2_3', ['十分ある','ある程度ある','あまりない','ほとんどない','分からない'])
+        && choice(d, 'q2_4', ['十分ある','ある程度ある','あまりない','ほとんどない','分からない'])
+        && choice(d, 'q4', ['相談しやすい','どちらかといえば相談しやすい','どちらかといえば相談しにくい','相談しにくい','分からない'])
+        && choice(d, 'q5_1', ['ある','ない','答えたくない'])
+        && choice(d, 'q5_2', ['ある','ない','答えたくない'])
+        && choices(d, 'q3', ['指導内容や目標の説明','コーチの言葉かけや接し方','子供同士の人間関係','保護者同士の人間関係','安全面や体調への配慮','教室・強化練習等への参加条件','練習時間や学業との両立','保護者への連絡や情報提供','その他','特にない','分からない'])
+        && exclusive(d, 'q3', ['特にない','分からない'])
+        && choices(d, 'q4r', ['相談先が分からない','子供への影響が心配','周囲との関係が心配','話しても変わらないと感じる','相談する機会がない','その他'])
+        && (!('q4r' in d) || ('q4' in d && d.q4 in ['相談しにくい','どちらかといえば相談しにくい']))
+        && choices(d, 'q6', ['子供の意欲や楽しさの変化','指導方針や接し方が合わない','子供同士の人間関係','保護者同士の人間関係','練習時間や学業との両立','体調や生活上の事情','競技目標に合った環境を探したい','相談しても解決しなかった','別のクラブへの移籍について、相談先が分からない','その他'])
+        && (!('q6' in d) || ('q5_1' in d && d.q5_1 == 'ある') || ('q5_2' in d && d.q5_2 == 'ある'))
+        && choices(d, 'q7', ['所属クラブ以外にも相談できる窓口','本人と保護者が希望する場合の、移籍などの相談','保護者が無記名で意見を届けられる機会','その他','特に希望はない','分からない'])
+        && exclusive(d, 'q7', ['特に希望はない','分からない'])
+        && text(d, 'q3o', 200) && other(d, 'q3o', 'q3')
+        && text(d, 'q6o', 200) && other(d, 'q6o', 'q6')
+        && text(d, 'q7o', 200) && other(d, 'q7o', 'q7')
+        && text(d, 'q8a', 2000) && text(d, 'q8b', 2000);
+    }
+    function freshResponse(uid) {
+      let claim = get(/databases/$(db)/documents/claims/$(uid)).data;
+      return !exists(/databases/$(db)/documents/responses/$(claim.r))
+        && existsAfter(/databases/$(db)/documents/responses/$(claim.r));
+    }
+    function legacy(claim) { return !('v' in claim); }
+    function ticketConsumed(claim) {
+      return claim.t == 'open'
+        || (!exists(/databases/$(db)/documents/used/$(claim.t))
+          && existsAfter(/databases/$(db)/documents/used/$(claim.t)));
     }
 
     match /admins/{uid} {
       allow get: if signedIn() && request.auth.uid == uid;
-      // 最初の担当者だけ、meta/setup と同時に登録できる。以後は担当者が引き継ぐ。
-      allow create: if isAdmin() || (signedIn() && request.auth.uid == uid
-        && request.auth.token.firebase.sign_in_provider == 'password'
-        && request.resource.data.keys().size() == 0
-        && !exists(/databases/$(db)/documents/meta/setup)
-        && existsAfter(/databases/$(db)/documents/meta/setup));
+      allow create: if request.resource.data.keys().size() == 0 && (isAdmin()
+        || (signedIn() && request.auth.uid == uid
+          && request.auth.token.firebase.sign_in_provider == 'password'
+          && !exists(/databases/$(db)/documents/meta/setup)
+          && existsAfter(/databases/$(db)/documents/meta/setup)));
       allow delete: if isAdmin();
     }
-
     match /meta/setup {
       allow get: if true;
-      allow create: if signedIn()
-        && request.resource.data.keys().size() == 0
+      allow create: if signedIn() && request.resource.data.keys().size() == 0
         && existsAfter(/databases/$(db)/documents/admins/$(request.auth.uid));
     }
-
-    // 貼り出し用QRの受付中の印。あるあいだだけ共通QRから回答できる。
     match /meta/open {
       allow get: if true;
-      allow create: if isAdmin() && request.resource.data.keys().size() == 0;
+      allow create, update: if isAdmin() && request.resource.data.keys().size() == 0;
       allow delete: if isAdmin();
     }
-
-    // 配布したリンクのハッシュ。リンクそのものは保存しない。
     match /tickets/{hash} {
       allow read: if isAdmin();
       allow create: if isAdmin() && request.resource.data.keys().size() == 0;
     }
-
-    // 使用済みの印。回答には結びつかない。
     match /used/{hash} {
       allow list: if isAdmin();
-      allow create: if signedIn()
-        && exists(/databases/$(db)/documents/tickets/$(hash))
+      // 新しい個別リンクは、回答の保存と同時に使用済みにする。
+      allow create: if signedIn() && accepting()
         && request.resource.data.keys().size() == 0
-        && getAfter(/databases/$(db)/documents/claims/$(request.auth.uid)).data.t == hash;
+        && exists(/databases/$(db)/documents/tickets/$(hash))
+        && get(/databases/$(db)/documents/claims/$(request.auth.uid)).data.t == hash
+        && !existsAfter(/databases/$(db)/documents/claims/$(request.auth.uid))
+        && freshResponse(request.auth.uid);
     }
-
-    // 回答中の一時的な受付票。回答の送信と同時に消える。
     match /claims/{uid} {
-      allow create: if signedIn() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['t','r'])
-        && request.resource.data.r is string && request.resource.data.r.size() == 32
-        && ((request.resource.data.t == 'open'
-              && exists(/databases/$(db)/documents/meta/open))
-          || (request.resource.data.t != 'open'
-              && !exists(/databases/$(db)/documents/used/$(request.resource.data.t))
-              && existsAfter(/databases/$(db)/documents/used/$(request.resource.data.t))));
-      allow delete: if signedIn() && request.auth.uid == uid;
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid && accepting()
+        && request.resource.data.keys().hasAll(['t','r','v'])
+        && request.resource.data.keys().hasOnly(['t','r','v'])
+        && request.resource.data.v == 2
+        && request.resource.data.r is string && request.resource.data.r.matches('^[0-9a-f]{32}$')
+        && !exists(/databases/$(db)/documents/participants/$(uid))
+        && (request.resource.data.t == 'open'
+          || (request.resource.data.t is string && request.resource.data.t.matches('^[0-9a-f]{64}$')
+            && exists(/databases/$(db)/documents/tickets/$(request.resource.data.t))
+            && !exists(/databases/$(db)/documents/used/$(request.resource.data.t))));
+      allow delete: if signedIn() && request.auth.uid == uid && freshResponse(uid);
     }
-
-    // 回答本体。リンク・利用者の情報を持たない。
+    // 完了の印だけを保存する。回答ID・リンク・本文は保存しない。
+    match /participants/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid && accepting()
+        && request.resource.data.keys().size() == 0
+        && exists(/databases/$(db)/documents/claims/$(uid))
+        && !existsAfter(/databases/$(db)/documents/claims/$(uid))
+        && freshResponse(uid);
+    }
     match /responses/{id} {
       allow read: if isAdmin();
-      allow create: if signedIn()
+      allow create: if signedIn() && accepting()
         && exists(/databases/$(db)/documents/claims/$(request.auth.uid))
         && !existsAfter(/databases/$(db)/documents/claims/$(request.auth.uid))
         && get(/databases/$(db)/documents/claims/$(request.auth.uid)).data.r == id
-        && (get(/databases/$(db)/documents/claims/$(request.auth.uid)).data.t != 'open'
-          || exists(/databases/$(db)/documents/meta/open))
-        && validAnswer(request.resource.data);
+        && validAnswer(request.resource.data)
+        && (legacy(get(/databases/$(db)/documents/claims/$(request.auth.uid)).data)
+          || (!exists(/databases/$(db)/documents/participants/$(request.auth.uid))
+            && existsAfter(/databases/$(db)/documents/participants/$(request.auth.uid))
+            && ticketConsumed(get(/databases/$(db)/documents/claims/$(request.auth.uid)).data)));
     }
   }
 }

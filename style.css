@@ -36,3 +36,60 @@ body.printCards .qrSheet{display:grid;grid-template-columns:1fr 1fr}
 body.printPoster .posterSheet{display:flex;flex-direction:column;align-items:center;justify-content:center;height:277mm;text-align:center;break-inside:avoid}
 .posterSub{font-size:22pt;margin:0}.posterTitle{font-size:36pt;line-height:1.3;margin:2mm 0 4mm}.posterLead{font-size:15pt;margin:0 0 8mm}
 .posterSheet .qrCode{width:140mm;height:140mm}.posterHow{font-size:22pt;font-weight:700;margin:6mm 0 3mm}.posterNote{font-size:14pt;margin:0}}
+
+/* スマートフォンでは縦に読み進め、問番号・管理メニューは横にも操作できる。 */
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{min-width:0}
+.wrap{padding-bottom:max(40px,env(safe-area-inset-bottom));}
+.wrap>*{min-width:0}
+.card{box-shadow:0 2px 10px #17324d05}
+input,textarea,button,a,summary{-webkit-tap-highlight-color:transparent}
+input[type=text],input[type=password]{min-height:48px}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid #e49b14;outline-offset:3px}
+button:hover,.btn:hover{filter:brightness(.96)}
+textarea{max-width:100%}
+.headerInner{max-width:680px;margin:auto}
+.head .eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;margin:0 0 5px}
+.loginCard{max-width:440px;margin:12px auto}
+.label{display:block;font-weight:600}
+.adminTabs,.questionNav{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;padding:8px 0 10px;scrollbar-width:thin}
+.adminTabs{position:sticky;top:0;z-index:5;background:var(--bg);margin:-8px 0 8px}
+.adminTabs button{flex:1 0 auto;background:#fff;border:1px solid var(--line);color:var(--sub);padding:10px 16px}
+.adminTabs button[aria-selected=true]{background:var(--main);color:#fff;border-color:var(--main)}
+.questionNav{position:sticky;top:0;z-index:5;background:var(--bg)}
+.questionJump{flex:0 0 auto;min-width:60px;min-height:48px;padding:8px 12px}
+.navHint{margin-top:0}
+[data-q],#submitCard{scroll-margin-top:80px}
+.reviewBtn{margin-bottom:14px}
+.stats .stat b{font-size:24px}
+.commonQr{display:flex;justify-content:center;padding:10px 0 20px}
+.commonQr .qrCode{width:220px;max-width:100%;height:auto;background:#fff}
+.openState{padding:14px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--sub)}
+.openState.isOpen{background:#e9f5ed;color:#176334;border-color:#b2d4bd}
+.buttonHint{font-weight:400;font-size:13px}
+.printHint{margin-top:10px}
+.linkInput{white-space:nowrap;overflow:auto;-webkit-overflow-scrolling:touch}
+details{border-top:1px solid var(--line);padding-top:8px}
+summary{min-height:48px;cursor:pointer;font-weight:600;padding:10px 0;line-height:1.6}
+details[open]>summary{margin-bottom:8px}
+.updated{margin:8px 0 0}
+.siteFooter{text-align:center;color:var(--sub);font-size:12px;padding:0 14px max(18px,env(safe-area-inset-bottom))}
+@media(max-width:375px){
+ .wrap{padding-left:10px;padding-right:10px}
+ .card{padding:14px}
+ .head{padding:20px 14px}
+ .head h1{font-size:20px}
+ .barText{flex-wrap:wrap;gap:0 8px}
+ .barText span:first-child{flex:1 1 165px}
+ .barText span:last-child{margin-left:auto}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{
+ body.printCards .qrSheet{grid-template-columns:1fr 1fr}
+ .qrCard{min-width:0;height:69mm;padding:4mm;gap:3mm}
+ .qrCard .qrCode{width:36mm;height:36mm}
+ .qrText{min-width:0}
+ .qrText p{font-size:9pt}
+ .posterSheet .qrCode{background:#fff}
+ .siteFooter{display:none!important}
+}
